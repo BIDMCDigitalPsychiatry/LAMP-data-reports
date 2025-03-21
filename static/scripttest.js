@@ -38,16 +38,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 // For PDF: Create a blob and open it in a new tab
                 return response.blob().then(blob => {
                     const url = window.URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                    responseMessage.textContent = 'PDF report generated successfully! Opening in a new tab.';
+                    const newTab = window.open();
+                    if (newTab) {
+                        newTab.document.write('<!DOCTYPE html><html><head><title>PDF Report</title></head><body><embed width="100%" height="100%" src="' + url + '" type="application/pdf"></embed></body></html>');
+                        newTab.document.close();
+                        responseMessage.textContent = 'PDF report generated successfully! Opening in a new tab.';
+                    } else {
+                        throw new Error('Failed to open new tab. Please check your browser settings.');
+                    }
                 });
             } else if (contentType && contentType.includes('text/html')) {
                 // For HTML: Open the response in a new tab
                 return response.text().then(html => {
                     const newTab = window.open();
-                    newTab.document.write(html);
-                    newTab.document.close();
-                    responseMessage.textContent = 'HTML report generated successfully! Opening in a new tab.';
+                    if (newTab) {
+                        newTab.document.write(html);
+                        newTab.document.close();
+                        responseMessage.textContent = 'HTML report generated successfully! Opening in a new tab.';
+                    } else {
+                        throw new Error('Failed to open new tab. Please check your browser settings.');
+                    }
                 });
             } else {
                 // For other types, just download the file
