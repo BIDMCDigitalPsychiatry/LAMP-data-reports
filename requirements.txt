@@ -1,0 +1,17 @@
+flask==2.3.3
+gunicorn==21.2.0
+pytz
+calplot
+pandas
+matplotlib
+seaborn
+scipy
+numpy
+altair
+IPython
+plotly==5.15.0
+pdfkit
+requests
+LAMP-core
+LAMP-cortex @ git+https://github.com/BIDMCDigitalPsychiatry/LAMP-cortex.git@master
+python-dotenv
