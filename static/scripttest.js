@@ -1,89 +1,81 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Get the form element
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('textForm');
     const responseMessage = document.getElementById('responseMessage');
+    let lastHtmlResponse = null; // Store the last HTML response
+
+    // Create the retry button (outside of event listener)
+    const retryButton = document.createElement('button');
+    retryButton.style.marginTop = '10px';
+    retryButton.style.padding = '8px 16px';
+    retryButton.style.fontSize = '16px';
+    retryButton.style.cursor = 'pointer';
+    retryButton.style.border = 'none';
+    retryButton.style.background = '#007bff';
+    retryButton.style.color = 'white';
+    retryButton.style.borderRadius = '5px';
+    retryButton.style.textAlign = 'center';
+    retryButton.style.position = 'relative';
+    retryButton.style.left = '50%';
+    retryButton.style.transform = 'translateX(-50%)';
+    retryButton.onclick = function () {
+        if (lastHtmlResponse) {
+            const newTab = window.open();
+            if (newTab) {
+                newTab.document.write(lastHtmlResponse);
+                newTab.document.close();
+                retryButton.style.display = 'none'; 
+            } else {
+                responseMessage.textContent = 'Pop-up blocked again. Please check your browser settings.';
+            }
+        }
+    };
+
     
-    // Add event listener for form submission
-    form.addEventListener('submit', function(event) {
-        // Prevent the default form submission
+    responseMessage.parentNode.insertBefore(retryButton, responseMessage.nextSibling);
+
+    form.addEventListener('submit', function (event) {
         event.preventDefault();
-        
-        // Show loading message
         responseMessage.textContent = 'Generating report... Please wait.';
-        
-        // Create a FormData object to easily send form data
+        retryButton.style.display = 'none'; 
+
         const formData = new FormData(form);
-        
-        // Send AJAX request
+
         fetch('/generate', {
             method: 'POST',
             body: formData
         })
         .then(response => {
-            // Check if the response is successful
             if (!response.ok) {
-                // If we get a JSON error response, parse it
-                if (response.headers.get('content-type')?.includes('application/json')) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || 'Report generation failed');
-                    });
-                }
-                throw new Error('Report generation failed with status: ' + response.status);
-            }
-            
-            // Check the content type of the response
-            const contentType = response.headers.get('content-type');
-            
-            if (contentType && contentType.includes('application/pdf')) {
-                // For PDF: Create a blob and open it in a new tab
-                return response.blob().then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const newTab = window.open();
-                    if (newTab) {
-                        newTab.document.write('<!DOCTYPE html><html><head><title>PDF Report</title></head><body><embed width="100%" height="100%" src="' + url + '" type="application/pdf"></embed></body></html>');
-                        newTab.document.close();
-                        responseMessage.textContent = 'PDF report generated successfully! Opening in a new tab.';
-                    } else {
-                        throw new Error('Failed to open new tab. Please check your browser settings.');
-                    }
+                return response.text().then(errorMsg => {
+                    throw new Error(errorMsg || 'Report generation failed');
                 });
-            } else if (contentType && contentType.includes('text/html')) {
-                // For HTML: Open the response in a new tab
+            }
+
+            const contentType = response.headers.get('content-type');
+
+            if (contentType.includes('text/html')) {
                 return response.text().then(html => {
                     const newTab = window.open();
                     if (newTab) {
                         newTab.document.write(html);
                         newTab.document.close();
-                        responseMessage.textContent = 'HTML report generated successfully! Opening in a new tab.';
+                        responseMessage.textContent = 'HTML report generated successfully!';
                     } else {
-                        throw new Error('Failed to open new tab. Please check your browser settings.');
+                        lastHtmlResponse = html; 
+                        responseMessage.textContent = 'Pop-up blocked. Click "Retry" to open the report.';
+                        retryButton.style.display = 'inline-block'; 
                     }
                 });
             } else {
-                // For other types, just download the file
-                const disposition = response.headers.get('content-disposition');
-                let filename = 'report';
-                if (disposition && disposition.includes('filename=')) {
-                    filename = disposition.split('filename=')[1].replace(/"/g, '');
-                }
-                
-                return response.blob().then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    responseMessage.textContent = 'Report generated successfully! Downloading file.';
-                });
+                throw new Error('Unexpected response format');
             }
         })
         .catch(error => {
-            // Display error message
             console.error('Error:', error);
             responseMessage.textContent = 'Error: ' + error.message;
+            if (lastHtmlResponse) {
+                retryButton.style.display = 'inline-block';
+            }
         });
     });
 });
