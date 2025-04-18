@@ -1,7 +1,6 @@
 # report_generator.py
 
 import os
-import os
 import sys
 import datetime
 import time
@@ -13,7 +12,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import ttest_ind, pearsonr
 
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -59,24 +57,39 @@ import plotly.tools as tls
 import io
 import base64
 
-
-starting_time = time.time()
-
-MS_IN_DAY = 24 * 3600 * 1000
+import json
 
 import argparse
+import json
+import sys
+import base64
+from datetime import datetime
 
-# Initialize argument parser
-parser = argparse.ArgumentParser(description="Generate a report.")
-
-# Define arguments
-parser.add_argument("--participant_id", required=True, help="Participant ID")
-parser.add_argument("--start_date", required=True, help="Start date for the report")
-parser.add_argument("--output_format", required=True, choices=["html", "pdf"], help="Output format")
-parser.add_argument("--output_path", required=True, help="Path to save the output file")
-
-# Parse arguments
+# ---------- Argument Parsing ----------
+parser = argparse.ArgumentParser(description="Generate LAMP report.")
+parser.add_argument('--participant_id', required=True)
+parser.add_argument('--start_date', required=True)
+parser.add_argument('--output_format', choices=['html', 'pdf'], required=True)
+parser.add_argument('--output_path', required=True)
+parser.add_argument('--progress_file', required=False, help="Path to write progress updates")
 args = parser.parse_args()
+
+# ---------- Progress Tracking ----------
+def update_progress(progress_file, value, message=None):
+    if progress_file:
+        try:
+            with open(progress_file, 'w') as f:
+                json.dump({"progress": value, "message": message}, f)
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as e:
+            print(f"[ERROR] Failed to write progress: {e}", file=sys.stderr)
+
+# Set progress file if provided
+progress_file = args.progress_file
+print(f"[INFO] Progress file: {progress_file}")
+
+update_progress(progress_file, 10, "Packages generated")
 
 # Assign variables
 participant_id = args.participant_id
@@ -104,7 +117,7 @@ def timestamp(dt):
 
 start_date = timestamp(start)
 
-
+MS_IN_DAY = 86400000
 # This document presents the data that was collected during your time during the social media study. You can keep this document for your records or use it as a reference when working with a new clinician or health provider. Feel free to reach out to the study team (jburns9@bidmc.harvard.edu) with any questions.
 
 # This graph shows the activities that you completed each day. Dates are along the x-axis, while the y-axis shows how many activities you completed that day, and the colors on the bars designate the activity names.
@@ -118,7 +131,7 @@ start_date = timestamp(start)
 # 
 # Potential example of interpreting this graph: Maybe you have a negative correlation between mood and steps. A negative correlation indicates that on days when your steps are higher, your mood is higher/better. Questions to think about: How does going on a walk make you feel? Do you usually feel better, worse, or about the same after you go on walks?
 
-
+update_progress(progress_file, 30, "Survey Scoring")
 
 score_dict = {'category_list': ['Daily Mood Survey', 'Daily Anxiety Survey', 'Daily Function Survey', 'Daily SM Survey'],
                     'questions': {
@@ -160,9 +173,9 @@ score_dict = {'category_list': ['Daily Mood Survey', 'Daily Anxiety Survey', 'Da
                         '1': 3,
                         '0': 4}
                     }
+update_progress(progress_file, 30, "Survey Scoring")
 
-
-
+update_progress(progress_file, 40, "Pulling passive data...")
 #Pulling passive data
 try:
     passive = cortex.run(part,
@@ -179,6 +192,7 @@ except Exception as e:
                             start=start_date,
                             end=end_date)
 
+update_progress(progress_file, 70, "Passive Data Pull Complete!")
 
 
 passive_df = pd.DataFrame()
@@ -352,6 +366,7 @@ cor_matrix
 # Nearby devices is a measure of, if your phone is turned on and connected to bluetooth, how many devices around you are also turned on and connected to bluetooth. It can be used as a measure of sociability. For example, if you are spending a lot of time in spaces with lots of people, like a concert or a busy coffee shop, there will be more people and devices around you.
 
 
+update_progress(progress_file, 70, "Creating graphs...")
 
 passive_df.rename(columns = {'difficulty functioning':'dysfunction'}, inplace = True)
 passive_df['screen_duration'] = passive_df['screen_duration']/3600000
@@ -570,7 +585,7 @@ dysfunction_fig_cal = calplot.calplot(dysfunction_data['dysfunction'], textfille
 
 # #### Data Quality Over the Past Week
 
-
+update_progress(progress_file, 90, "Final touches...")
 
 data_qual=cortex.secondary.data_quality.data_quality(id=part, start=cortex.now()-7*MS_IN_DAY, 
                                                     end=cortex.now(), resolution=86400000, 
@@ -677,6 +692,9 @@ html_content = f"""
 </body>
 </html>
 """
+
+update_progress(progress_file, 100, "yippee")
+
 
 # Save the HTML content to a file
 with open(output_path, "w") as file:
