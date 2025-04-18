@@ -1,101 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DN Report Generator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-        }
-        form {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"], input[type="date"], select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        input[type="submit"] {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        input[type="submit"]:hover {
-            background-color: #2980b9;
-        }
-        #responseMessage {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        .loading {
-            color: #f39c12;
-        }
-        .success {
-            color: #27ae60;
-        }
-        .error {
-            color: #e74c3c;
-            background-color: #fadbd8;
-            padding: 10px;
-            border-radius: 4px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Generate DN Report</h1>
-    <form id="textForm" method="post">
-        <div>
-            <label for="participant_id">Participant ID:</label>
-            <input type="text" id="participant_id" placeholder="U0123456789" name="participant_id" required>
-        </div>
-        
-        <div>
-            <label for="start_date">Start Date:</label>
-            <input type="date" id="start_date" name="start_date" required>
-        </div>
-        
-        <div>
-            <label for="output_format">Output Format:</label>
-            <select id="output_format" name="output_format" required>
-                <option value="pdf">PDF</option>
-                <option value="html">HTML</option>
-            </select>
-        </div>
-        
-        <div>
-            <input type="submit" value="Generate Report">
-        </div>
-    </form>
+{% extends "base.html" %}
+{% block title %}Generate Report{% endblock %}
+{% block content %}
 
-    <p id="responseMessage"></p>
+<div class="container" style="max-width:600px">
+  <form id="textForm"
+        class="card p-4 shadow-sm"
+        method="post"
+        action="{{ url_for('generate_report') }}">
 
-    <!-- Load the JavaScript file -->
-    <script src="{{ url_for('static', filename='scripttest.js') }}"></script>
-</body>
-</html>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="participant_id">Participant ID</label>
+      <input class="form-control" id="participant_id" name="participant_id"
+             placeholder="U0123456789" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="start_date">Start Date</label>
+      <input type="date" class="form-control" id="start_date" name="start_date" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="report_sel">Choose report</label>
+      <select class="form-select" name="report_id" id="report_sel" required>
+        {% for r in reports %}
+          <option value="{{ r.site }}/{{ r.file }}">{{ r.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold" for="output_format">Output Format</label>
+      <select class="form-select" name="output_format" id="output_format" required>
+        <option value="pdf">PDF</option>
+        <option value="html">HTML</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary w-100">Generate</button>
+  </form>
+
+  <p id="responseMessage" class="mt-3 text-center"></p>
+</div>
+
+<script src="{{ url_for('static', filename='scripttest.js') }}"></script>
+{% endblock %}

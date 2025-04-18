@@ -1,4 +1,9 @@
-flask==2.3.3
+flask>=3.0
+flask-Login>=0.6
+flask-SQLAlchemy>=3.1
+Flask-Admin>=1.6 
+Flask-WTF
+werkzeug>=3.0 
 gunicorn==21.2.0
 pytz
 calplot

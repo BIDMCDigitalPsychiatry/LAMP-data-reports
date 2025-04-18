@@ -1,6 +1,7 @@
 __pycache__/
 .venv/
 .matt-venv/
-reports
 .DS_Store
 .env
+*progress.json
+outputs/
