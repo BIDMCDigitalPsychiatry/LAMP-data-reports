@@ -20,8 +20,16 @@ access_key = os.getenv("LAMP_ACCESS_KEY")
 secret_key = os.getenv("LAMP_SECRET_KEY")
 server_address = os.getenv("LAMP_SERVER_ADDRESS")
 
-if not all([access_key, secret_key, server_address]):
-    raise ValueError("Missing one or more required environment variables.")
+missing_vars = []
+if not access_key:
+    missing_vars.append("LAMP_ACCESS_KEY")
+if not secret_key:
+    missing_vars.append("LAMP_SECRET_KEY")
+if not server_address:
+    missing_vars.append("LAMP_SERVER_ADDRESS")
+
+if missing_vars:
+    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
 import LAMP
 LAMP.connect()
