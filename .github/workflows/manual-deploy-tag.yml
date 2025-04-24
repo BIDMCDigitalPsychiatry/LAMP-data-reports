@@ -1,0 +1,63 @@
+name: 'Manual Deploy: Docker Tag'
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: Tag of the DOCKER image to deploy
+      env:
+        type: environment
+        default: stg
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.env }}
+  cancel-in-progress: false
+
+jobs:
+
+  locate:
+    name: Find Target Image
+    runs-on: ubuntu-24.04
+    outputs:
+      digest: ${{ steps.inspect.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DOCKER_PUSH_IAM_ROLE_ARN }}
+          aws-region: us-east-2
+  
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull target tag & inspect
+        id: inspect
+        run: |
+          set -e
+
+          TARGET_IMAGE="544847369688.dkr.ecr.us-east-2.amazonaws.com/data-reports:${{ inputs.tag }}"
+          docker pull $TARGET_IMAGE
+          checksum=$(
+            docker inspect $TARGET_IMAGE \
+              | jq '.[].RepoDigests.[]' \
+              | tr -d '"' \
+              | sed 's/^.*@//'
+          )
+
+          echo "digest=${checksum}" >> "$GITHUB_OUTPUT"
+  deploy:
+    name: "Deploy"
+    uses: ./.github/workflows/callable-deploy-ecs.yml
+    secrets: inherit
+    with:
+      env: ${{ inputs.env }}
+      container_digest: ${{ needs.locate.outputs.digest }}
+    needs:
+      - locate
