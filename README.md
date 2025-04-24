@@ -32,18 +32,17 @@ Generated files live in **`outputs/`**, while the source scripts stay in **`repo
 
 ## Quick‑start (local dev)
 
+First, install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) if you haven't already.
+
 ```bash
-# clone & set up virtual‑env
-git clone https://github.com/your‑org/LAMP-cortex-cnl.git
-cd dn‑reports
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+# clone
+git clone https://github.com/your‑org/LAMP-cortex-cnl.git && cd LAMP-cortext-cnl
 
-# create the first admin account
-flask --app app create-admin      # prompts for username + password
+# create account
+uv run flask --app app create-admin      # prompts for username + password
 
-# run the dev server
-python app.py                     # http://localhost:5000
+# run
+uv run app.py                            # http://localhost:5000
 ```
 
 ---
