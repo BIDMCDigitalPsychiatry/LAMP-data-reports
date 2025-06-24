@@ -16,7 +16,8 @@ Generated files live in **`outputs/`**, while the source scripts stay in **`repo
 ├── app.py                  # Flask logic, auth, endpoints, CLI helpers
 ├── user_repository.py      # DynamoDB user management
 ├── dynamo_config.py        # DynamoDB configuration
-├── requirements.txt
+├── pyproject.toml          # Project dependencies
+├── uv.lock                 # Locked dependency versions
 ├── templates/              # Jinja2 HTML (Bootstrap 5 UI)
 │   ├── base.html
 │   ├── index.html
@@ -37,11 +38,13 @@ Generated files live in **`outputs/`**, while the source scripts stay in **`repo
 ## Quick‑start (local dev)
 
 ```bash
-# clone & set up virtual‑env
+# clone & install uv
 git clone https://github.com/your‑org/LAMP-cortex-cnl.git
 cd LAMP-data-reports
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# install dependencies
+uv sync
 
 # configure AWS credentials (see LOCAL_TESTING_GUIDE.md for details)
 export AWS_ACCESS_KEY_ID=your_key
@@ -50,10 +53,10 @@ export AWS_REGION=us-east-1
 export DYNAMODB_TABLE_NAME=dev-data-reports-users
 
 # create the first admin account
-flask create-admin      # prompts for username + password
+uv run flask create-admin         # prompts for username + password
 
 # run the dev server
-python app.py                     # http://localhost:5000
+uv run python app.py              # http://localhost:5000
 ```
 
 ---
@@ -62,12 +65,12 @@ python app.py                     # http://localhost:5000
 
 | Action | Command |
 | ------ | ------- |
-| List accounts | `flask users list` |
-| Add **user** John to **bidmc** | `flask users add John --role user --site bidmc` |
-| Add analyst | `flask users add <name> --role analyst --site <site>` |
-| Add admin | `flask users add <name> --role admin` |
-| Reset password | `flask users passwd <username>` |
-| Delete account | `flask users delete <username>` |
+| List accounts | `uv run flask users list` |
+| Add **user** John to **bidmc** | `uv run flask users add John --role user --site bidmc` |
+| Add analyst | `uv run flask users add <name> --role analyst --site <site>` |
+| Add admin | `uv run flask users add <name> --role admin` |
+| Reset password | `uv run flask users passwd <username>` |
+| Delete account | `uv run flask users delete <username>` |
 
 ---
 

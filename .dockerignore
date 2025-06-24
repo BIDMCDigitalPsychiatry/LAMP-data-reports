@@ -1,0 +1,2 @@
+# Dont accidentally use local virtual environment in docker image builds
+.venv
