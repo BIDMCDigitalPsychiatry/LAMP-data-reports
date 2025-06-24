@@ -95,16 +95,6 @@ body.dark-mode {
     border-color: #3d3d3d;
   }
   
-  /* Keep navbar white in dark mode */
-  body.dark-mode nav.navbar {
-    background-color: #ffffff !important;
-    color: #212121;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  }
-  
-  body.dark-mode .navbar-brand {
-    color: #212121;
-  }
   
   /* Theme toggle button styling */
   .theme-toggle {
@@ -204,6 +194,17 @@ nav.navbar {
   }
   nav .logout:hover { background:#f9e2e2; }
 
+/* Dark mode navbar - override the white navbar */
+body.dark-mode nav.navbar {
+  background-color: #2d3748 !important;
+  border: 1px solid #4a5568;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .navbar-brand {
+  color: #ffffff !important;
+}
+
 /* flash‑message colours (used by Flask flash) */
 .flash {
     padding: 10px;
@@ -214,3 +215,52 @@ nav.navbar {
 
 .flash.warning { background:#fff3cd; color:#856404; }
 .flash.danger  { background:#f8d7da; color:#721c24; }
+
+/* Dark mode heading and text improvements */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: #ffffff;
+}
+
+/* Dark mode flash messages */
+body.dark-mode .flash.warning {
+  background-color: #3d2914;
+  color: #ffc107;
+  border: 1px solid #664d03;
+}
+
+body.dark-mode .flash.danger {
+  background-color: #2d1b1b;
+  color: #f8d7da;
+  border: 1px solid #721c24;
+}
+
+/* Dark mode theme toggle button improvements */
+body.dark-mode .theme-toggle {
+  color: #ffffff;
+}
+
+body.dark-mode .theme-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* User info text in navbar */
+body.dark-mode nav.navbar span {
+  color: #ffffff !important;
+}
+
+/* Login form improvements in dark mode */
+body.dark-mode .card {
+  background-color: #1a202c;
+  border: 1px solid #2d3748;
+}
+
+/* Button hover states */
+body.dark-mode .btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
