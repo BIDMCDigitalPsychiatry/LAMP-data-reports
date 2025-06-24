@@ -27,22 +27,13 @@ from flask_login import (
     login_required,
     logout_user,
     current_user,
-    UserMixin,
 )
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
 import click
 
-# ────────────────────────────────────────────────────────────────────────────
-# Optional GUI admin (Flask‑Admin is optional; if not installed, GUI is skipped)
-# ────────────────────────────────────────────────────────────────────────────
-try:
-    from flask_admin import Admin
-    from flask_admin.contrib.sqla import ModelView
-    HAVE_ADMIN = True
-except ModuleNotFoundError:
-    HAVE_ADMIN = False
+from user_repository import DynamoUserRepository, DynamoUser
+
+HAVE_ADMIN = False
 
 # ────────────────────────────────────────────────────────────────────────────
 # Application factory
@@ -50,15 +41,13 @@ except ModuleNotFoundError:
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config.update(
     SECRET_KEY=os.getenv("SECRET_KEY", os.urandom(24).hex()),
-    SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "sqlite:///database.db"),
-    SQLALCHEMY_TRACK_MODIFICATIONS=False,
     SESSION_COOKIE_SECURE=True,      # Only send over HTTPS
     SESSION_COOKIE_HTTPONLY=True,    # Prevent JavaScript access
     SESSION_COOKIE_SAMESITE='Lax',   # Restrict cross-site usage
 )
 
 csrf = CSRFProtect(app)
-db = SQLAlchemy(app)
+user_repo = DynamoUserRepository()
 
 # ────────────────────────────────────────────────────────────────────────────
 # Paths
@@ -74,21 +63,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger("dn‑reports")
 
 # ────────────────────────────────────────────────────────────────────────────
-# Database model
+# User model is now in user_repository.py as DynamoUser
 # ────────────────────────────────────────────────────────────────────────────
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    pw_hash = db.Column(db.String(256), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # user / analyst / admin
-    site = db.Column(db.String(80), nullable=True)   # NULL for admins
-
-    # password helper
-    def verify(self, password: str) -> bool:
-        return check_password_hash(self.pw_hash, password)
-
-    def __repr__(self):
-        return f"<User {self.username}:{self.role}:{self.site or '-'}>"
 
 # ────────────────────────────────────────────────────────────────────────────
 # Authentication setup
@@ -98,7 +74,7 @@ login_mgr.login_view = "login"
 
 @login_mgr.user_loader
 def load_user(user_id: str):
-    return User.query.get(int(user_id))
+    return user_repo.get_by_id(user_id)
 
 # ────────────────────────────────────────────────────────────────────────────
 # CLI helpers
@@ -115,70 +91,56 @@ def users():
 def add_user(username, password, role, site):
     if role != "admin" and not site:
         click.echo("Error: --site required for non‑admins"); return
-    if User.query.filter_by(username=username).first():
-        click.echo("Error: username exists"); return
-    db.session.add(User(
-        username=username,
-        pw_hash=generate_password_hash(password),
-        role=role,
-        site=None if role == "admin" else site,
-    ))
-    db.session.commit()
-    click.echo("✓ user created")
+    try:
+        user_repo.create_user(
+            username=username,
+            password=password,
+            role=role,
+            site=None if role == "admin" else site
+        )
+        click.echo("✓ user created")
+    except ValueError as e:
+        click.echo(f"Error: {e}")
 
 @users.command("list")
 def list_users():
-    for u in User.query.order_by(User.id).all():
-        click.echo(f"{u.id:3} {u.username:15} {u.role:8} {u.site or '-'}")
+    for u in user_repo.list_all_users():
+        click.echo(f"{u.id[:8]:8} {u.username:15} {u.role:8} {u.site or '-'}")
 
 @users.command("delete")
 @click.argument("username")
 def delete_user(username):
-    n = User.query.filter_by(username=username).delete()
-    db.session.commit()
+    n = user_repo.delete_user(username)
     click.echo(f"✓ removed {n} users")
 
 @users.command("passwd")
 @click.argument("username")
 def passwd(username):
-    user = User.query.filter_by(username=username).first()
+    user = user_repo.get_by_username(username)
     if not user:
         click.echo("No such user"); return
     pw = click.prompt("new password", hide_input=True, confirmation_prompt=True)
-    user.pw_hash = generate_password_hash(pw)
-    db.session.commit()
-    click.echo("✓ password updated")
+    if user_repo.update_password(user.id, user.username, pw):
+        click.echo("✓ password updated")
+    else:
+        click.echo("Error updating password")
 
 @app.cli.command("create-admin")
 def create_admin():
     """Bootstrap the very first admin account"""
     username = click.prompt("admin username")
     password = click.prompt("password", hide_input=True, confirmation_prompt=True)
-    if User.query.filter_by(username=username).first():
-        click.echo("User exists"); return
-    db.session.add(User(username=username,
-                        pw_hash=generate_password_hash(password),
-                        role="admin"))
-    db.session.commit()
-    click.echo("✓ admin created")
-
-# ────────────────────────────────────────────────────────────────────────────
-# Flask‑Admin GUI (optional)
-# ────────────────────────────────────────────────────────────────────────────
-if HAVE_ADMIN:
-    class SecureView(ModelView):
-        can_export = False
-        column_exclude_list = ("pw_hash",)
-        def is_accessible(self):
-            return current_user.is_authenticated and current_user.role == "admin"
-    admin_panel = Admin(app, name="Dashboard", template_mode="bootstrap4")
-    admin_panel.add_view(SecureView(User, db.session, category="Auth"))
+    try:
+        user_repo.create_user(username=username, password=password, role="admin")
+        click.echo("✓ admin created")
+    except ValueError as e:
+        click.echo(f"Error: {e}")
 
 # ────────────────────────────────────────────────────────────────────────────
 # Helper: discover available report scripts for a user
 # ────────────────────────────────────────────────────────────────────────────
 
-def discover_reports_for(user: User):
+def discover_reports_for(user: DynamoUser):
     """Return list[dict] of scripts {'site','file','label'} accessible to user."""
     if user.role == "admin":
         site_dirs = [p for p in REPORT_ROOT.iterdir() if p.is_dir()]
@@ -214,10 +176,12 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("index"))
     if request.method == "POST":
-        user = User.query.filter_by(username=request.form["username"].strip()).first()
+        user = user_repo.get_by_username(request.form["username"].strip())
         if not user or not user.verify(request.form["password"]):
             flash("Invalid credentials", "danger"); return redirect(url_for("login"))
-        login_user(user); return redirect(url_for("index"))
+        login_user(user)
+        user_repo.update_last_login(user.id, user.username)
+        return redirect(url_for("index"))
     return render_template("login.html")
 
 @app.route("/logout")
@@ -328,6 +292,4 @@ def generate_report():
 # Entrypoint
 # ────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(host="0.0.0.0", port=5000, use_reloader=False)

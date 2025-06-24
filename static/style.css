@@ -60,131 +60,135 @@ input[type="submit"]:hover {
     border-radius: 4px;
 }
 
-/* dark-mode.css - refined version */
-body.dark-mode {
-    background-color: #121212;
-    color: #e0e0e0;
-  }
-  
-  /* Make form labels white in dark mode */
-  body.dark-mode .form-label,
-  body.dark-mode label {
-    color: #ffffff;
-  }
-  
-  /* Improve input styling in dark mode */
-  body.dark-mode input[type="text"],
-  body.dark-mode input[type="password"],
-  body.dark-mode input[type="date"],
-  body.dark-mode select,
-  body.dark-mode .form-control,
-  body.dark-mode .form-select {
-    background-color: #3d3d3d;
-    color: #e0e0e0;
-    border: 1px solid #555;
-  }
-  
-  /* Style input placeholders */
-  body.dark-mode ::placeholder {
-    color: #aaaaaa;
-  }
-  
-  /* Improve card styling */
-  body.dark-mode .card {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-  }
-  
-  /* Keep navbar white in dark mode */
-  body.dark-mode nav.navbar {
-    background-color: #ffffff !important;
-    color: #212121;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  }
-  
-  body.dark-mode .navbar-brand {
-    color: #212121;
-  }
-  
-  /* Theme toggle button styling */
-  .theme-toggle {
-    background: none;
-    border: none;
-    cursor: pointer;
-    width: auto;
-    padding: 8px;
-    border-radius: 4px;
-    margin-right: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  /* Fix the icon coloring */
-  .theme-toggle .moon {
-    stroke: #666666;
-    fill: none;
-  }
-  
-  .theme-toggle:hover .moon {
-    stroke: #2196f3;
-  }
-  
-  body.dark-mode .theme-toggle .sun {
-    stroke: #2196f3;
-    fill: none;
-  }
-  
-  /* Icon display logic */
-  body.dark-mode .theme-toggle .moon {
-    display: none;
-  }
-  body.dark-mode .theme-toggle .sun {
-    display: inline;
-  }
-  .theme-toggle .sun {
-    display: none;
-  }
-  .theme-toggle .moon {
-    display: inline;
-  }
-  
-  /* Style the generate button */
-  body.dark-mode .btn-primary {
-    background-color: #2196f3;
-    border-color: #1e88e5;
-  }
-  
-  body.dark-mode .btn-primary:hover {
-    background-color: #42a5f5;
-    border-color: #2196f3;
-  }
-  
-  /* Ensure logout button is visible in dark mode */
-  body.dark-mode .btn-outline-danger {
-    color: #f44336;
-    border-color: #f44336;
-  }
-  
-  body.dark-mode .btn-outline-danger:hover {
-    background-color: #f44336;
-    color: white;
-  }
+/* ═══════════════════════════════════════════════════════════════════════════════
+   DARK MODE STYLES
+   ═══════════════════════════════════════════════════════════════════════════════ */
 
-  body.dark-mode select.form-select {
-  /* This changes the color of the dropdown arrow */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+/* Text and headings */
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode h4,
+body.dark-mode h5,
+body.dark-mode h6 {
+  color: #ffffff;
+}
+
+body.dark-mode .form-label,
+body.dark-mode label {
+  color: #ffffff;
+}
+
+/* Form inputs */
+body.dark-mode input[type="text"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="date"],
+body.dark-mode select,
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background-color: #3d3d3d;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+body.dark-mode ::placeholder {
+  color: #aaaaaa;
+}
+
+/* Cards and containers */
+body.dark-mode .card {
+  background-color: #1a202c;
+  border: 1px solid #2d3748;
+}
+/* Theme toggle button */
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: auto;
+  padding: 8px;
+  border-radius: 4px;
+  margin-right: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.theme-toggle .moon {
+  stroke: #666666;
+  fill: none;
+}
+
+.theme-toggle:hover .moon {
+  stroke: #2196f3;
+}
+
+/* Dark mode theme toggle */
+body.dark-mode .theme-toggle {
+  color: #ffffff;
+}
+
+body.dark-mode .theme-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .theme-toggle .sun {
+  stroke: #2196f3;
+  fill: none;
+}
+
+/* Icon display logic */
+body.dark-mode .theme-toggle .moon {
+  display: none;
+}
+body.dark-mode .theme-toggle .sun {
+  display: inline;
+}
+.theme-toggle .sun {
+  display: none;
+}
+.theme-toggle .moon {
+  display: inline;
+}
+
+/* Buttons in dark mode */
+body.dark-mode .btn-primary {
+  background-color: #2196f3;
+  border-color: #1e88e5;
+}
+
+body.dark-mode .btn-primary:hover {
+  background-color: #42a5f5;
+  border-color: #2196f3;
+}
+
+body.dark-mode .btn-outline-danger {
+  color: #f44336;
+  border-color: #f44336;
+}
+
+body.dark-mode .btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+/* Special form elements in dark mode */
+body.dark-mode select.form-select {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px 12px;
 }
 
-/* For the calendar icon in date inputs */
 body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* This inverts the color to make it white */
+  filter: invert(1);
 }
 
-/* Some browsers need this alternative method */
 body.dark-mode input[type="date"] {
   color-scheme: dark;
 }
@@ -204,6 +208,17 @@ nav.navbar {
   }
   nav .logout:hover { background:#f9e2e2; }
 
+/* Dark mode navbar - override the white navbar */
+body.dark-mode nav.navbar {
+  background-color: #2d3748 !important;
+  border: 1px solid #4a5568;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+body.dark-mode .navbar-brand {
+  color: #ffffff !important;
+}
+
 /* flash‑message colours (used by Flask flash) */
 .flash {
     padding: 10px;
@@ -214,3 +229,21 @@ nav.navbar {
 
 .flash.warning { background:#fff3cd; color:#856404; }
 .flash.danger  { background:#f8d7da; color:#721c24; }
+
+/* Flash messages in dark mode */
+body.dark-mode .flash.warning {
+  background-color: #3d2914;
+  color: #ffc107;
+  border: 1px solid #664d03;
+}
+
+body.dark-mode .flash.danger {
+  background-color: #2d1b1b;
+  color: #f8d7da;
+  border: 1px solid #721c24;
+}
+
+/* Navbar text in dark mode */
+body.dark-mode nav.navbar span {
+  color: #ffffff !important;
+}

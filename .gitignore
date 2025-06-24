@@ -5,3 +5,10 @@ __pycache__/
 .env
 *progress.json
 outputs/
+
+# Claude Documentation
+AUTHENTICATION_MIGRATION_PLAN.md
+DYNAMODB_SCHEMA.md
+ECS_DEPLOYMENT_GUIDE.md
+LOCAL_TESTING_GUIDE.md
+ADD_TEST_USERS_GUIDE.md

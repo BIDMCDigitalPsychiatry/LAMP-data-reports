@@ -5,6 +5,8 @@
 A lightweight Flask app that lets **users**, **analysts**, and **admins** run site‑specific Python report scripts and download the results as PDF or HTML.  
 Generated files live in **`outputs/`**, while the source scripts stay in **`reports/<site>/`**.
 
+**Authentication:** Uses AWS DynamoDB for user management with support for IAM roles on ECS.
+
 ---
 
 ## Project structure
@@ -12,6 +14,8 @@ Generated files live in **`outputs/`**, while the source scripts stay in **`repo
 ```text
 .
 ├── app.py                  # Flask logic, auth, endpoints, CLI helpers
+├── user_repository.py      # DynamoDB user management
+├── dynamo_config.py        # DynamoDB configuration
 ├── requirements.txt
 ├── templates/              # Jinja2 HTML (Bootstrap 5 UI)
 │   ├── base.html
@@ -35,12 +39,18 @@ Generated files live in **`outputs/`**, while the source scripts stay in **`repo
 ```bash
 # clone & set up virtual‑env
 git clone https://github.com/your‑org/LAMP-cortex-cnl.git
-cd dn‑reports
+cd LAMP-data-reports
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
+# configure AWS credentials (see LOCAL_TESTING_GUIDE.md for details)
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+export AWS_REGION=us-east-1
+export DYNAMODB_TABLE_NAME=dev-data-reports-users
+
 # create the first admin account
-flask --app app create-admin      # prompts for username + password
+flask create-admin      # prompts for username + password
 
 # run the dev server
 python app.py                     # http://localhost:5000
@@ -52,14 +62,12 @@ python app.py                     # http://localhost:5000
 
 | Action | Command |
 | ------ | ------- |
-| List accounts | `flask --app app users list` |
-| Add **user** John to **bidmc** | `flask --app app users add John --role user --site bidmc` |
-| Add analyst | `flask --app app users add <name> --role analyst --site <site>` |
-| Add admin | `flask --app app users add <name> --role admin` |
-| Reset password | `flask --app app users passwd <username>` |
-| Delete account | `flask --app app users delete <username>` |
-
-> **GUI option:** Log in as an admin and go to `/admin/` for a CRUD table.
+| List accounts | `flask users list` |
+| Add **user** John to **bidmc** | `flask users add John --role user --site bidmc` |
+| Add analyst | `flask users add <name> --role analyst --site <site>` |
+| Add admin | `flask users add <name> --role admin` |
+| Reset password | `flask users passwd <username>` |
+| Delete account | `flask users delete <username>` |
 
 ---
 
