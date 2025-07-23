@@ -5,10 +5,9 @@ import sys
 import json
 import time
 import logging
-import threading
-import subprocess
 import pathlib
 from datetime import datetime
+import boto3
 
 from flask import (
     Flask,
@@ -32,6 +31,7 @@ from flask_wtf.csrf import CSRFProtect
 import click
 
 from user_repository import DynamoUserRepository, DynamoUser
+from parameter_store import parameter_store
 
 HAVE_ADMIN = False
 
@@ -49,11 +49,14 @@ app.config.update(
 csrf = CSRFProtect(app)
 user_repo = DynamoUserRepository()
 
+# AWS clients
+ecs_client = boto3.client('ecs')
+s3_client = boto3.client('s3')
+
 # ────────────────────────────────────────────────────────────────────────────
-# Paths
+# Paths and Configuration
 # ────────────────────────────────────────────────────────────────────────────
-REPORT_ROOT = pathlib.Path(app.root_path) / "reports"   # source scripts
-OUTPUT_ROOT = pathlib.Path(app.root_path) / "outputs"   # generated files + progress
+OUTPUT_ROOT = pathlib.Path(app.root_path) / "outputs"   # local temp files for compatibility
 OUTPUT_ROOT.mkdir(exist_ok=True)
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -137,28 +140,25 @@ def create_admin():
         click.echo(f"Error: {e}")
 
 # ────────────────────────────────────────────────────────────────────────────
-# Helper: discover available report scripts for a user
+# Helper: discover available reports for a user
 # ────────────────────────────────────────────────────────────────────────────
 
 def discover_reports_for(user: DynamoUser):
-    """Return list[dict] of scripts {'site','file','label'} accessible to user."""
+    """Return list[dict] of reports {'site','file','label'} accessible to user."""
+    # For now, hardcode the available reports. Later this could be dynamic
+    all_reports = [
+        {
+            "site": "bidmc",
+            "file": "social_media_dn_report.py",
+            "label": "BIDMC – Social Media DN Report",
+        }
+    ]
+    
     if user.role == "admin":
-        site_dirs = [p for p in REPORT_ROOT.iterdir() if p.is_dir()]
+        return all_reports
     else:
-        site_dir = REPORT_ROOT / (user.site or "")
-        site_dirs = [site_dir] if site_dir.is_dir() else []
-
-    reports: list[dict] = []
-    for site_dir in site_dirs:
-        for file_path in site_dir.glob("*.py"):
-            if file_path.name.startswith("_"):
-                continue
-            reports.append({
-                "site": site_dir.name,
-                "file": file_path.name,
-                "label": f"{site_dir.name} – {file_path.stem}",
-            })
-    return sorted(reports, key=lambda r: (r["site"], r["file"]))
+        # Filter reports by user's site
+        return [r for r in all_reports if r["site"] == user.site]
 
 # ────────────────────────────────────────────────────────────────────────────
 # Routes
@@ -201,15 +201,28 @@ def index():
 # Progress API
 # ────────────────────────────────────────────────────────────────────────────
 @app.route("/progress/<task_id>")
-@login_required
+@login_required  
 def check_progress(task_id):
-    pf = OUTPUT_ROOT / f"{task_id}_progress.json"
-    if pf.exists():
-        try:
-            return jsonify(json.load(pf.open()))
-        except Exception:
-            pass
-    return jsonify(progress=0, message="Starting…")
+    try:
+        bucket_name = parameter_store.get_parameter('REPORT_BUCKET')
+        
+        # Search for progress file in the hierarchical structure
+        response = s3_client.list_objects_v2(
+            Bucket=bucket_name, 
+            Prefix=f'progress/',
+            Delimiter='/'
+        )
+        
+        # Find the progress file for this task_id
+        for obj in response.get('Contents', []):
+            if obj['Key'].endswith(f'{task_id}.json'):
+                progress_response = s3_client.get_object(Bucket=bucket_name, Key=obj['Key'])
+                return jsonify(json.loads(progress_response['Body'].read()))
+        
+        return jsonify(progress=0, message="Starting…")
+    except Exception as e:
+        logger.error(f"Progress check error: {e}")
+        return jsonify(progress=0, message="Error checking progress")
 
 # ────────────────────────────────────────────────────────────────────────────
 # Download endpoint
@@ -217,11 +230,27 @@ def check_progress(task_id):
 @app.route("/download/<task_id>")
 @login_required
 def download_report(task_id):
-    for fp in OUTPUT_ROOT.iterdir():
-        if task_id in fp.stem and fp.suffix in (".html", ".pdf"):
-            mime = "text/html" if fp.suffix == ".html" else "application/pdf"
-            return send_file(fp, mimetype=mime, as_attachment=False)
-    abort(404, "Report not found")
+    try:
+        bucket_name = parameter_store.get_parameter('REPORT_BUCKET')
+        
+        # List objects to find the report file
+        response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=f'outputs/')
+        
+        for obj in response.get('Contents', []):
+            if task_id in obj['Key'] and obj['Key'].endswith(('.html', '.pdf')):
+                # Generate presigned URL for download
+                url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': bucket_name, 'Key': obj['Key']},
+                    ExpiresIn=3600
+                )
+                return redirect(url)
+        
+        abort(404, "Report not found")
+        
+    except Exception as e:
+        logger.error(f"Download error: {e}")
+        abort(500, "Error retrieving report")
 
 # ────────────────────────────────────────────────────────────────────────────
 # Generate endpoint
@@ -230,9 +259,9 @@ def download_report(task_id):
 @login_required
 def generate_report():
     participant_id = request.form.get("participant_id")
-    start_date     = request.form.get("start_date")
-    output_format  = request.form.get("output_format")
-    report_id      = request.form.get("report_id")        # “site/script.py”
+    start_date = request.form.get("start_date")
+    output_format = request.form.get("output_format")
+    report_id = request.form.get("report_id")  # "site/script.py"
 
     if not all([participant_id, start_date, output_format, report_id]):
         return jsonify(error="Missing required fields"), 400
@@ -242,51 +271,73 @@ def generate_report():
     except ValueError:
         return jsonify(error="Bad report id"), 400
 
-    # authorisation
+    # authorization
     if current_user.role != "admin" and site != current_user.site:
         return jsonify(error="Not authorised for that site"), 403
 
-    script_path = REPORT_ROOT / site / script_name
-    if not script_path.is_file():
-        return jsonify(error="Report script not found"), 404
+    # Generate task ID and S3 paths
+    task_id = str(time.time_ns())
+    script_stem = script_name.rsplit(".", 1)[0]
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    try:
+        bucket_name = parameter_store.get_parameter('REPORT_BUCKET')
+        output_key = f"outputs/{site}/{script_stem}/{script_stem}_{participant_id}_{ts}_{task_id}.{output_format}"
+        progress_key = f"progress/{site}/{script_stem}/{task_id}.json"
+        
+        output_path = f"s3://{bucket_name}/{output_key}"
+        progress_file = f"s3://{bucket_name}/{progress_key}"
 
-    # filenames
-    task_id       = str(time.time_ns())
-    script_stem   = script_name.rsplit(".", 1)[0]
-    progress_file = OUTPUT_ROOT / f"{task_id}_progress.json"
-    ts            = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_file   = OUTPUT_ROOT / (
-        f"{script_stem}_{site}_{participant_id}_{ts}_{task_id}"
-        f"{'.html' if output_format == 'html' else '.pdf'}"
-    )
+        # Get ECS configuration
+        cluster_name = parameter_store.get_parameter('ECS_CLUSTER')
+        subnet_id = parameter_store.get_parameter('SUBNET_ID')
+        security_group_id = parameter_store.get_parameter('SECURITY_GROUP_ID')
+        
+        # Get LAMP credentials from Parameter Store
+        lamp_access_key = parameter_store.get_parameter('LAMP_ACCESS_KEY')
+        lamp_secret_key = parameter_store.get_parameter('LAMP_SECRET_KEY')
+        lamp_server_address = parameter_store.get_parameter('LAMP_SERVER_ADDRESS')
 
-    cmd = [
-        sys.executable, str(script_path),
-        "--participant_id", participant_id,
-        "--start_date",     start_date,
-        "--output_format",  output_format,
-        "--output_path",    str(output_file),
-        "--progress_file",  str(progress_file),
-    ]
-
-    # run asynchronously
-    def worker():
-        try:
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            status = {"progress": 100, "message": "Report ready!"}
-
-            if res.returncode != 0:
-                status = {"progress": -1,
-                          "message": res.stderr.splitlines()[-1] or 'Error'}
-            elif not output_file.exists():
-                status = {"progress": -1, "message": "Output file missing"}
-        except Exception as e:
-            status = {"progress": -1, "message": str(e)}
-
-        json.dump(status, progress_file.open("w"))
-
-    threading.Thread(target=worker, daemon=True).start()
-    return jsonify(task_id=task_id)
+        # Run ECS task
+        response = ecs_client.run_task(
+            cluster=cluster_name,
+            taskDefinition=f'lamp-data-reports-dev',
+            launchType='FARGATE',
+            networkConfiguration={
+                'awsvpcConfiguration': {
+                    'subnets': [subnet_id],
+                    'securityGroups': [security_group_id],
+                    'assignPublicIp': 'ENABLED'
+                }
+            },
+            overrides={
+                'containerOverrides': [
+                    {
+                        'name': 'data-reports',
+                        'environment': [
+                            {'name': 'LAMP_ACCESS_KEY', 'value': lamp_access_key},
+                            {'name': 'LAMP_SECRET_KEY', 'value': lamp_secret_key},
+                            {'name': 'LAMP_SERVER_ADDRESS', 'value': lamp_server_address},
+                            {'name': 'TASK_ID', 'value': task_id}
+                        ],
+                        'command': [
+                            '--participant_id', participant_id,
+                            '--start_date', start_date,
+                            '--output_format', output_format,
+                            '--output_path', output_path,
+                            '--progress_file', progress_file,
+                        ]
+                    }
+                ]
+            }
+        )
+        
+        logger.info(f"Started ECS task for report {report_id}, task_id: {task_id}")
+        return jsonify(task_id=task_id)
+        
+    except Exception as e:
+        logger.error(f"Failed to start ECS task: {e}")
+        return jsonify(error="Failed to start report generation"), 500
 
 # ────────────────────────────────────────────────────────────────────────────
 # Entrypoint
