@@ -1,0 +1,32 @@
+[project]
+name = "lamp-data-reports"
+version = "0.1.0"
+description = "Generate and visualize LAMP reports"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "altair>=4.2.2",
+    "boto3>=1.34.0",
+    "calplot>=0.1.7.5",
+    "docker>=6.0.0",
+    "flask>=3.0",
+    "flask-login>=0.6",
+    "flask-wtf>=1.2.2",
+    "gunicorn==21.2.0",
+    "ipython>=9.1.0",
+    "lamp-core>=2021.10.4",
+    "lamp-cortex",
+    "matplotlib>=3.10.1",
+    "numpy>=1.26.4",
+    "pandas>=1.5.3",
+    "pdfkit>=1.0.0",
+    "plotly==5.15.0",
+    "python-dotenv>=1.1.0",
+    "pytz>=2021.3",
+    "requests>=2.32.3",
+    "scipy>=1.15.2",
+    "seaborn>=0.12.2",
+    "werkzeug>=3.0",
+]
+
+[tool.uv.sources]
