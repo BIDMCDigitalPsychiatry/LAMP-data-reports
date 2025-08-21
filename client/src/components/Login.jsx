@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "../style/Login.css"
 
 const handleSubmit = () => {
@@ -5,11 +6,12 @@ const handleSubmit = () => {
 }
 
 export default function Login() {
-  
+  const [email, setEmail] = useState("");
+
   return (
     <div className = 'login_container'>
-      <h1>MIND-lab</h1>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className = 'login-form'>
+        <h1>MIND-lab</h1>
         <input 
           type="email"
           onChange={(e) => setEmail(e.target.value)}

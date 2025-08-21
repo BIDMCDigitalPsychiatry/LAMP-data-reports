@@ -1,7 +1,17 @@
-.app {
-  margin: 5px;
-  background-color: var(--bg-dark);
-  color: var(--text-light);
-  padding: 0 10px;
-  overflow-x: hidden;
+@import url('https://fonts.googleapis.com/css2?family=Geologica:wght@100..900&display=swap');
+:root {
+  --bg-dark: #121212;
+  --bg-light: #1e1e1e;
+  --text-light: #e0e0e0;
 }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center; 
+  align-items: center;
+  background-color: var(--bg-dark);
+  font-family: 'Geologica', sans-serif;
+}
+
