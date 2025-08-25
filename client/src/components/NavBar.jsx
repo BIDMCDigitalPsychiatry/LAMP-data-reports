@@ -1,17 +1,17 @@
-import "../style/NavBar.css"
+import { NavLink } from "react-router-dom";
+import "../style/NavBar.css";
 
 export default function NavBar() {
-  <div className = 'NavBar_container'>
-    <nav>
-      <ul>
-        <Link to= "/app/dashboard">Dashboard</Link>
-      </ul>
-      <ul>
-        <Link to = "/app/datareport">Data Report</Link>
-      </ul>
-      <ul>
-        <Link to = "/app/patient">Patient</Link>
-      </ul>
-    </nav>
-  </div>
+  return (
+    <div className = 'NavBar_container'>
+      <nav>
+        <ul className = "Menu_list">
+          <li><NavLink to = "/dashboard">Dashboard</NavLink></li>
+          <li><NavLink to = "/datareport">Data Report</NavLink></li>
+          <li><NavLink to = "/document">Documentation</NavLink></li>
+          
+        </ul>
+      </nav>
+    </div>
+  );
 }

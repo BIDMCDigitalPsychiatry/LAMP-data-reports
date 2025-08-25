@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "../style/Login.css"
+import "../style/Login.css";
 
 const handleSubmit = () => {
   console.log('submit')

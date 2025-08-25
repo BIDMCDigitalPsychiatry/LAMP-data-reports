@@ -1,0 +1,51 @@
+:root {
+  --green: #43aa8b;
+  --red: #ef476f;
+  --bg-dark: #121212;
+  --bg-light: #1e1e1e;
+  --text-light: #e0e0e0;
+  --card-dark: #1c1c1c;
+  --border-dark: #333;
+  --submit-button: #FDFEFF;
+  --button-hover: #B9B9B9;
+  --login-light: #667A8A;
+  --login-dark: #34424E;
+}
+
+.NavBar_container {
+  background-color: var(--login-light);
+  padding: 10px 20px;
+  position: fixed;
+  left: 0;
+  top: 5rem;
+  bottom: 5rem;
+  right: 80rem;
+}
+
+.NavBar_container nav ul {
+  list-style: none;
+  display: flex;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+}
+
+.Menu_list {
+  display: flex;
+  flex-direction: column;
+}
+
+.NavBar_container nav ul li {
+  display: inline;
+  margin-bottom: 3rem;
+}
+
+.NavBar_container nav ul li a {
+  text-decoration: none;
+  color: var(--login-dark);
+  font-weight: bold;
+}
+
+.NavBar_container nav ul li a:hover {
+  color: #00aced;
+}
