@@ -163,6 +163,13 @@ def discover_reports_for(user: DynamoUser):
 # ────────────────────────────────────────────────────────────────────────────
 # Routes
 # ────────────────────────────────────────────────────────────────────────────
+@app.route("/service/healthz")
+def healthz():
+    return jsonify({
+        "status": "healthy",
+        "service": "data-reports"
+    }), 200
+
 @app.before_request
 def before_request():
     pass
