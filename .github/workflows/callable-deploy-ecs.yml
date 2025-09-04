@@ -66,7 +66,7 @@ jobs:
           echo "$( jq 'del(.registeredBy)'       task.json )" > task.json
 
           # Update Image
-          echo "$( jq --arg image "${{ steps.config.outputs.TARGET_IMAGE_W_DIGEST }}" '.containerDefinitions |= map((select(.name == "data-reports") | .image) |= $image)' task.json )" > task.json
+          echo "$( jq --arg image "${{ steps.config.outputs.TARGET_IMAGE_W_DIGEST }}" '.containerDefinitions |= map((select(.name == "flask") | .image) |= $image)' task.json )" > task.json
           cat task.json
 
       - name: Deploy Amazon ECS task definition
